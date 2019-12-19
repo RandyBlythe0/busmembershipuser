@@ -12,9 +12,16 @@ import android.os.Bundle;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
+import android.util.JsonReader;
 import android.util.Log;
 import android.widget.Toast;
 
+import com.android.volley.Request;
+import com.android.volley.RequestQueue;
+import com.android.volley.Response;
+import com.android.volley.VolleyError;
+import com.android.volley.toolbox.StringRequest;
+import com.android.volley.toolbox.Volley;
 import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationCallback;
 import com.google.android.gms.location.LocationRequest;
@@ -29,6 +36,10 @@ import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+
 import java.util.List;
 
 public class MapsActivity extends AppCompatActivity
@@ -38,8 +49,11 @@ public class MapsActivity extends AppCompatActivity
     SupportMapFragment mapFrag;
     LocationRequest mLocationRequest;
     Location mLastLocation;
+    LatLng globalLatLng;
     Marker mCurrLocationMarker;
     FusedLocationProviderClient mFusedLocationClient;
+    boolean zoom_reset = true;
+    String base_url = "http://abdus01.000webhostapp.com/index.php/Admin/";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -52,22 +66,25 @@ public class MapsActivity extends AppCompatActivity
 
         mapFrag = (SupportMapFragment) getSupportFragmentManager().findFragmentById(R.id.map);
         mapFrag.getMapAsync(this);
+        globalLatLng = new LatLng(0,0);
     }
+
+
 
     @Override
     public void onPause() {
         super.onPause();
 
         //stop location updates when Activity is no longer active
-        if (mFusedLocationClient != null) {
-            mFusedLocationClient.removeLocationUpdates(mLocationCallback);
-        }
+        //if (mFusedLocationClient != null) {
+        //    mFusedLocationClient.removeLocationUpdates(mLocationCallback);
+        //}
     }
 
     @Override
     public void onMapReady(GoogleMap googleMap) {
         mGoogleMap = googleMap;
-        mGoogleMap.setMapType(GoogleMap.MAP_TYPE_HYBRID);
+        mGoogleMap.setMapType(GoogleMap.MAP_TYPE_NORMAL);
 
         mLocationRequest = new LocationRequest();
         mLocationRequest.setInterval(1200); // two minute interval
@@ -96,6 +113,7 @@ public class MapsActivity extends AppCompatActivity
         @Override
         public void onLocationResult(LocationResult locationResult) {
             List<Location> locationList = locationResult.getLocations();
+
             if (locationList.size() > 0) {
                 //The last location in the list is the newest
                 Location location = locationList.get(locationList.size() - 1);
@@ -105,16 +123,23 @@ public class MapsActivity extends AppCompatActivity
                     mCurrLocationMarker.remove();
                 }
 
+                api_call(1, 2, location.getLatitude(), location.getLongitude());
+
                 //Place current location marker
                 LatLng latLng = new LatLng(location.getLatitude(), location.getLongitude());
                 MarkerOptions markerOptions = new MarkerOptions();
-                markerOptions.position(latLng);
+                markerOptions.position(globalLatLng);
                 markerOptions.title("Current Position");
                 markerOptions.icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_MAGENTA));
                 mCurrLocationMarker = mGoogleMap.addMarker(markerOptions);
 
                 //move map camera
-                mGoogleMap.moveCamera(CameraUpdateFactory.newLatLngZoom(latLng, 20));
+                if(zoom_reset) {
+                    mGoogleMap.moveCamera(CameraUpdateFactory.newLatLngZoom(latLng, 11));
+                    zoom_reset = false;
+                }
+
+
             }
         }
     };
@@ -187,5 +212,43 @@ public class MapsActivity extends AppCompatActivity
             // other 'case' lines to check for other
             // permissions this app might request
         }
+    }
+
+    public String api_call(int pull,int bus_id, double latitude, double longitude){
+        RequestQueue queue = Volley.newRequestQueue(this);
+        String api_string = pull == 1 ? "pull_coordinates" : "push_coordinates";
+        api_string += "?bus_id=" + bus_id;
+        api_string += "&x=" + latitude;
+        api_string += "&y=" + longitude;
+        StringRequest stringRequest = new StringRequest(Request.Method.GET, base_url+api_string,
+                new Response.Listener<String>() {
+                    @Override
+                    public void onResponse(String response) {
+                        // Display the first 500 characters of the response string.
+                        //textView.setText("Response is: "+ response.substring(0,500));
+                        Log.i("Json Response",response.toString());
+                        try {
+                            JSONArray jArray = new JSONArray(response);
+                            for (int i=0;i<jArray.length();i++){
+                                JSONObject obj = jArray.getJSONObject(i);
+                                globalLatLng = new LatLng(obj.getDouble("x"),obj.getDouble("y"));
+                                Log.i("Json Response",obj.toString());
+                            }
+                        } catch (JSONException e) {
+                            Log.e("Json Response",e.toString());
+                        }
+
+                    }
+                }, new Response.ErrorListener() {
+            @Override
+            public void onErrorResponse(VolleyError error) {
+                //textView.setText("That didn't work!");
+                Log.e("API Response", "Error in API Request" + error.toString());
+            }
+        });
+
+// Add the request to the RequestQueue.
+        queue.add(stringRequest);
+        return "";
     }
 }
