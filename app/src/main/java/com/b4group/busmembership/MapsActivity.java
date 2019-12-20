@@ -53,7 +53,7 @@ public class MapsActivity extends AppCompatActivity
     Marker mCurrLocationMarker;
     FusedLocationProviderClient mFusedLocationClient;
     boolean zoom_reset = true;
-    String base_url = "http://abdus01.000webhostapp.com/index.php/Admin/";
+    //String base_url = "http://abdus01.000webhostapp.com/index.php/Admin/";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -220,7 +220,7 @@ public class MapsActivity extends AppCompatActivity
         api_string += "?bus_id=" + bus_id;
         api_string += "&x=" + latitude;
         api_string += "&y=" + longitude;
-        StringRequest stringRequest = new StringRequest(Request.Method.GET, base_url+api_string,
+        StringRequest stringRequest = new StringRequest(Request.Method.GET, Global.base_url+api_string,
                 new Response.Listener<String>() {
                     @Override
                     public void onResponse(String response) {
