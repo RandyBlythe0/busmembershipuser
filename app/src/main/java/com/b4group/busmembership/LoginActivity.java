@@ -9,7 +9,10 @@ import android.support.v7.widget.Toolbar;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
+import android.widget.EditText;
+import android.widget.Toast;
 
+import com.android.volley.AuthFailureError;
 import com.android.volley.Request;
 import com.android.volley.RequestQueue;
 import com.android.volley.Response;
@@ -22,12 +25,22 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.util.HashMap;
+import java.util.Map;
+
 public class LoginActivity extends AppCompatActivity {
+
+    EditText userEmail,userPassword;
+    Button sign_in_button;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_login);
+        setTitle(R.string.title_activity_login);
+
+        userEmail = (EditText) findViewById(R.id.userEmail);
+        userPassword = (EditText) findViewById(R.id.userPassword);
 //        Toolbar toolbar = findViewById(R.id.toolbar);
 //        setSupportActionBar(toolbar);
 //
@@ -39,29 +52,30 @@ public class LoginActivity extends AppCompatActivity {
 //                        .setAction("Action", null).show();
 //            }
 //        });
-        Button sign_in_button = (Button) findViewById(R.id.sign_in_button);
+        sign_in_button = (Button) findViewById(R.id.sign_in_button);
         sign_in_button.setOnClickListener(new View.OnClickListener() {
             public void onClick(View view) {
-                Intent myIntent = new Intent(view.getContext(), MapsActivity.class);
-                startActivityForResult(myIntent, 0);
+                api_call();
             }
 
         });
     }
 
-    public String api_call(int pull,int bus_id, double latitude, double longitude){
-//        RequestQueue queue = Volley.newRequestQueue(this);
-//        String api_string = pull == 1 ? "pull_coordinates" : "push_coordinates";
+    public String api_call(){
+        RequestQueue queue = Volley.newRequestQueue(this);
+        String controller_name="employee/login";
+        //String api_string = pull == 1 ? "pull_coordinates" : "push_coordinates";
 //        api_string += "?bus_id=" + bus_id;
 //        api_string += "&x=" + latitude;
 //        api_string += "&y=" + longitude;
-//        StringRequest stringRequest = new StringRequest(Request.Method.GET, Global.base_url+api_string,
-//                new Response.Listener<String>() {
-//                    @Override
-//                    public void onResponse(String response) {
-//                        // Display the first 500 characters of the response string.
-//                        //textView.setText("Response is: "+ response.substring(0,500));
-//                        Log.i("Json Response",response.toString());
+        StringRequest stringRequest = new StringRequest(Request.Method.POST, Global.base_url+controller_name,
+                new Response.Listener<String>() {
+                    @Override
+                    public void onResponse(String response) {
+                        // Display the first 500 characters of the response string.
+                        //textView.setText("Response is: "+ response.substring(0,500));
+                        Log.i("Json Response",response.toString());
+                        Toast.makeText(getApplicationContext(), response.toString(), Toast.LENGTH_SHORT).show();
 //                        try {
 //                            JSONArray jArray = new JSONArray(response);
 //                            for (int i=0;i<jArray.length();i++){
@@ -72,18 +86,28 @@ public class LoginActivity extends AppCompatActivity {
 //                        } catch (JSONException e) {
 //                            Log.e("Json Response",e.toString());
 //                        }
-//
-//                    }
-//                }, new Response.ErrorListener() {
-//            @Override
-//            public void onErrorResponse(VolleyError error) {
-//                //textView.setText("That didn't work!");
-//                Log.e("API Response", "Error in API Request" + error.toString());
-//            }
-//        });
+
+                    }
+                }, new Response.ErrorListener() {
+            @Override
+            public void onErrorResponse(VolleyError error) {
+                //textView.setText("That didn't work!");
+                Log.e("API Response", "Error in API Request" + error.toString());
+                Toast.makeText(getApplicationContext(), error.toString(), Toast.LENGTH_SHORT).show();
+            }
+        }){
+            @Override
+            protected Map<String, String> getParams() throws AuthFailureError{
+                Map<String, String> params = new HashMap<>();
+                params.put("email", userEmail.getText().toString());
+                params.put("password", userPassword.getText().toString());
+                params.put("api", "1");
+                return params;
+            }
+        };
 
 // Add the request to the RequestQueue.
-//        queue.add(stringRequest);
+        queue.add(stringRequest);
         return "";
     }
 
