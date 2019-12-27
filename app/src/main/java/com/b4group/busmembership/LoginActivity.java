@@ -10,6 +10,8 @@ import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.ProgressBar;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import com.android.volley.AuthFailureError;
@@ -32,6 +34,8 @@ public class LoginActivity extends AppCompatActivity {
 
     EditText userEmail,userPassword;
     Button sign_in_button;
+    ProgressBar progressBar;
+    TextView clickToRegister;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -41,6 +45,8 @@ public class LoginActivity extends AppCompatActivity {
 
         userEmail = (EditText) findViewById(R.id.userEmail);
         userPassword = (EditText) findViewById(R.id.userPassword);
+        progressBar = (ProgressBar) findViewById(R.id.progressBar1);
+        clickToRegister = (TextView) findViewById(R.id.clickToRegister);
 //        Toolbar toolbar = findViewById(R.id.toolbar);
 //        setSupportActionBar(toolbar);
 //
@@ -55,7 +61,16 @@ public class LoginActivity extends AppCompatActivity {
         sign_in_button = (Button) findViewById(R.id.sign_in_button);
         sign_in_button.setOnClickListener(new View.OnClickListener() {
             public void onClick(View view) {
+                progressBar.setVisibility(View.VISIBLE);
                 api_call();
+            }
+
+        });
+
+        clickToRegister.setOnClickListener(new View.OnClickListener() {
+            public void onClick(View view) {
+                Intent myIntent = new Intent(getBaseContext(), RegisterActivity.class);
+                startActivityForResult(myIntent, 0);
             }
 
         });
@@ -74,18 +89,24 @@ public class LoginActivity extends AppCompatActivity {
                     public void onResponse(String response) {
                         // Display the first 500 characters of the response string.
                         //textView.setText("Response is: "+ response.substring(0,500));
+                        progressBar.setVisibility(View.GONE);
                         Log.i("Json Response",response.toString());
                         Toast.makeText(getApplicationContext(), response.toString(), Toast.LENGTH_SHORT).show();
-//                        try {
+                        try {
 //                            JSONArray jArray = new JSONArray(response);
 //                            for (int i=0;i<jArray.length();i++){
-//                                JSONObject obj = jArray.getJSONObject(i);
-//                                globalLatLng = new LatLng(obj.getDouble("x"),obj.getDouble("y"));
-//                                Log.i("Json Response",obj.toString());
+                                JSONObject obj = new JSONObject(response);
+//                              globalLatLng = new LatLng(obj.getDouble("x"),obj.getDouble("y"));
+                                Log.i("Json Response",obj.toString());
+                                Log.i("Extract", obj.getString("result"));
+                                if(obj.getString("result").equals("Success")){
+                                    Intent myIntent = new Intent(getBaseContext(), MapsActivity.class);
+                                    startActivityForResult(myIntent, 0);
+                                }
 //                            }
-//                        } catch (JSONException e) {
-//                            Log.e("Json Response",e.toString());
-//                        }
+                        } catch (JSONException e) {
+                            Log.e("Json Response",e.toString());
+                        }
 
                     }
                 }, new Response.ErrorListener() {
