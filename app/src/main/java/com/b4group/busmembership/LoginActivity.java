@@ -62,6 +62,7 @@ public class LoginActivity extends AppCompatActivity {
         sign_in_button.setOnClickListener(new View.OnClickListener() {
             public void onClick(View view) {
                 progressBar.setVisibility(View.VISIBLE);
+                sign_in_button.setEnabled(false);
                 api_call();
             }
 
@@ -90,6 +91,7 @@ public class LoginActivity extends AppCompatActivity {
                         // Display the first 500 characters of the response string.
                         //textView.setText("Response is: "+ response.substring(0,500));
                         progressBar.setVisibility(View.GONE);
+                        sign_in_button.setEnabled(true);
                         Log.i("Json Response",response.toString());
                         Toast.makeText(getApplicationContext(), response.toString(), Toast.LENGTH_SHORT).show();
                         try {
@@ -100,7 +102,7 @@ public class LoginActivity extends AppCompatActivity {
                                 Log.i("Json Response",obj.toString());
                                 Log.i("Extract", obj.getString("result"));
                                 if(obj.getString("result").equals("Success")){
-                                    Intent myIntent = new Intent(getBaseContext(), MapsActivity.class);
+                                    Intent myIntent = new Intent(getBaseContext(), LoginActivity.class);
                                     startActivityForResult(myIntent, 0);
                                 }
 //                            }

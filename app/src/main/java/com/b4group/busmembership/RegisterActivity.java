@@ -60,7 +60,7 @@ public class RegisterActivity extends AppCompatActivity {
 
     public String api_call(){
         RequestQueue queue = Volley.newRequestQueue(this);
-        String controller_name="employee/login";
+        String controller_name="employee/register";
         //String api_string = pull == 1 ? "pull_coordinates" : "push_coordinates";
 //        api_string += "?bus_id=" + bus_id;
 //        api_string += "&x=" + latitude;
@@ -102,8 +102,11 @@ public class RegisterActivity extends AppCompatActivity {
             @Override
             protected Map<String, String> getParams() throws AuthFailureError {
                 Map<String, String> params = new HashMap<>();
-                params.put("email", userEmail.getText().toString());
-                params.put("password", userPassword.getText().toString());
+                params.put("name", userEmail.getText().toString());
+                params.put("email", userPassword.getText().toString());
+                params.put("mobile", userMobile.getText().toString());
+                params.put("company", userCompany.getText().toString());
+                params.put("address", userAddress.getText().toString());
                 params.put("api", "1");
                 return params;
             }
