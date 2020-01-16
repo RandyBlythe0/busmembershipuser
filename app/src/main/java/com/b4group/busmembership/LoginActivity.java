@@ -102,7 +102,7 @@ public class LoginActivity extends AppCompatActivity {
                                 Log.i("Json Response",obj.toString());
                                 Log.i("Extract", obj.getString("result"));
                                 if(obj.getString("result").equals("Success")){
-                                    Intent myIntent = new Intent(getBaseContext(), LoginActivity.class);
+                                    Intent myIntent = new Intent(getBaseContext(), MapActivity.class);
                                     startActivityForResult(myIntent, 0);
                                 }
 //                            }
