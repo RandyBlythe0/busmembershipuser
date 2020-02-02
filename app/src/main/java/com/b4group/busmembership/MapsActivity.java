@@ -1,11 +1,19 @@
 package com.b4group.busmembership;
 
 import android.Manifest;
+import android.content.Context;
 import android.content.DialogInterface;
+import android.content.Intent;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
+import android.graphics.Bitmap;
+import android.graphics.Canvas;
+import android.graphics.drawable.Drawable;
 import android.location.Location;
 import android.os.Build;
 import android.os.Looper;
+import android.support.annotation.DrawableRes;
+import android.support.design.widget.FloatingActionButton;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.FragmentActivity;
 import android.os.Bundle;
@@ -14,8 +22,10 @@ import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.util.JsonReader;
 import android.util.Log;
+import android.view.View;
 import android.widget.Toast;
 
+import com.android.volley.AuthFailureError;
 import com.android.volley.Request;
 import com.android.volley.RequestQueue;
 import com.android.volley.Response;
@@ -31,6 +41,7 @@ import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
+import com.google.android.gms.maps.model.BitmapDescriptor;
 import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
@@ -40,7 +51,11 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+
 
 public class MapsActivity extends AppCompatActivity
         implements OnMapReadyCallback {
@@ -49,10 +64,13 @@ public class MapsActivity extends AppCompatActivity
     SupportMapFragment mapFrag;
     LocationRequest mLocationRequest;
     Location mLastLocation;
-    LatLng globalLatLng;
+    List <LatLng> globalLatLng;
     Marker mCurrLocationMarker;
     FusedLocationProviderClient mFusedLocationClient;
     boolean zoom_reset = true;
+    SharedPreferences sharedPreferences;
+    SharedPreferences.Editor sharedPreferencesEditor;
+    FloatingActionButton settingsButton;
     //String base_url = "http://abdus01.000webhostapp.com/index.php/Admin/";
 
     @Override
@@ -65,8 +83,22 @@ public class MapsActivity extends AppCompatActivity
         mFusedLocationClient = LocationServices.getFusedLocationProviderClient(this);
 
         mapFrag = (SupportMapFragment) getSupportFragmentManager().findFragmentById(R.id.map);
+
+
+
+        settingsButton = (FloatingActionButton) findViewById(R.id.settings);
+        settingsButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Intent myIntent = new Intent(getBaseContext(), SettingsActivity.class);
+                startActivityForResult(myIntent, 0);
+            }
+        });
+
         mapFrag.getMapAsync(this);
-        globalLatLng = new LatLng(0,0);
+        globalLatLng = new ArrayList<LatLng>();
+        sharedPreferences = getApplicationContext().getSharedPreferences("busmembershipuser", 0);
+        sharedPreferencesEditor = sharedPreferences.edit();
     }
 
 
@@ -123,16 +155,19 @@ public class MapsActivity extends AppCompatActivity
                     mCurrLocationMarker.remove();
                 }
 
-                api_call(1, 2, location.getLatitude(), location.getLongitude());
+                get_buses_by_route(location.getLatitude(), location.getLongitude());
+                //api_call(1, sharedPreferences.getInt("RouteId",0), location.getLatitude(), location.getLongitude());
 
-                //Place current location marker
                 LatLng latLng = new LatLng(location.getLatitude(), location.getLongitude());
-                MarkerOptions markerOptions = new MarkerOptions();
-                markerOptions.position(globalLatLng);
-                markerOptions.title("Current Position");
-                markerOptions.icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_MAGENTA));
-                mCurrLocationMarker = mGoogleMap.addMarker(markerOptions);
+                //Place current location marker
+                for(int locs=0;locs<globalLatLng.size();locs++) {
 
+                    MarkerOptions markerOptions = new MarkerOptions();
+                    markerOptions.position(globalLatLng.get(locs));
+                    markerOptions.title("Current Position");
+                    markerOptions.icon(bitmapDescriptorFromVector(getApplicationContext(),R.drawable.ic_bus_icon));
+                    mCurrLocationMarker = mGoogleMap.addMarker(markerOptions);
+                }
                 //move map camera
                 if(zoom_reset) {
                     mGoogleMap.moveCamera(CameraUpdateFactory.newLatLngZoom(latLng, 11));
@@ -232,7 +267,7 @@ public class MapsActivity extends AppCompatActivity
                             JSONArray jArray = new JSONArray(response);
                             for (int i=0;i<jArray.length();i++){
                                 JSONObject obj = jArray.getJSONObject(i);
-                                globalLatLng = new LatLng(obj.getDouble("x"),obj.getDouble("y"));
+                                globalLatLng.add( new LatLng(obj.getDouble("x"),obj.getDouble("y")));
                                 Log.i("Json Response",obj.toString());
                             }
                         } catch (JSONException e) {
@@ -251,5 +286,78 @@ public class MapsActivity extends AppCompatActivity
 // Add the request to the RequestQueue.
         queue.add(stringRequest);
         return "";
+    }
+
+    public String get_buses_by_route(final double x, final double y){
+        RequestQueue queue = Volley.newRequestQueue(this);
+        String controller_name="bus/listBusesByRoute";
+        //String api_string = pull == 1 ? "pull_coordinates" : "push_coordinates";
+//        api_string += "?bus_id=" + bus_id;
+//        api_string += "&x=" + latitude;
+//        api_string += "&y=" + longitude;
+        StringRequest stringRequest = new StringRequest(Request.Method.POST, Global.base_url+controller_name,
+                new Response.Listener<String>() {
+                    @Override
+                    public void onResponse(String response) {
+                        // Display the first 500 characters of the response string.
+                        //textView.setText("Response is: "+ response.substring(0,500));
+                        //progressBar.setVisibility(View.GONE);
+                        Log.i("Json Response",response.toString());
+                        //Toast.makeText(getApplicationContext(), response.toString(), Toast.LENGTH_SHORT).show();
+                        try {
+//                            JSONArray jArray = new JSONArray(response);
+//                            for (int i=0;i<jArray.length();i++){
+                            JSONObject obj = new JSONObject(response);
+//                              globalLatLng = new LatLng(obj.getDouble("x"),obj.getDouble("y"));
+                            Log.i("Json Try Parse Response",obj.toString());
+                            Log.i("Extract", obj.getJSONArray("buses").toString());
+
+                            JSONArray busArray = new JSONArray();
+                            busArray = obj.getJSONArray("buses");
+                            for (int i=0;i<busArray.length();i++){
+                                JSONObject bus = busArray.getJSONObject(i);
+                                Log.i("busArray:", "Putting bus info X:"+x+" Y:"+y+" bus_id:"+bus.getInt("id"));
+                                api_call(1, bus.getInt("id"), x, y);
+//                                spinnerArray.add(bus.getString("name"));
+//                                spinnerHashMap.put(bus.getString("name"),bus.getInt("id"));
+                            }
+
+
+//                            }
+                        } catch (JSONException e) {
+                            Log.e("Json Exception",e.toString());
+                        }
+
+                    }
+                }, new Response.ErrorListener() {
+            @Override
+            public void onErrorResponse(VolleyError error) {
+                //textView.setText("That didn't work!");
+                Log.e("API Response", "Error in API Request" + error.toString());
+                Toast.makeText(getApplicationContext(), error.toString(), Toast.LENGTH_SHORT).show();
+            }
+        }){
+            @Override
+            protected Map<String, String> getParams() throws AuthFailureError {
+                Map<String, String> params = new HashMap<>();
+
+                params.put("route_id", ""+sharedPreferences.getInt("RouteId",0));
+                params.put("api", "1");
+                return params;
+            }
+        };
+
+// Add the request to the RequestQueue.
+        queue.add(stringRequest);
+        return "";
+    }
+
+    private BitmapDescriptor bitmapDescriptorFromVector(Context context, int vectorResId) {
+        Drawable vectorDrawable = ContextCompat.getDrawable(context, vectorResId);
+        vectorDrawable.setBounds(0, 0, vectorDrawable.getIntrinsicWidth(), vectorDrawable.getIntrinsicHeight());
+        Bitmap bitmap = Bitmap.createBitmap(vectorDrawable.getIntrinsicWidth(), vectorDrawable.getIntrinsicHeight(), Bitmap.Config.ARGB_8888);
+        Canvas canvas = new Canvas(bitmap);
+        vectorDrawable.draw(canvas);
+        return BitmapDescriptorFactory.fromBitmap(bitmap);
     }
 }
